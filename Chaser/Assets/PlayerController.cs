@@ -24,10 +24,17 @@ public class PlayerController : MonoBehaviour {
     public Camera mainCamera;
     public float smoothXTime;
     public float smoothYTime;
+    public float ignoreCollosionTime;
+    public float currentIgnoreCollisionTime;
+    public bool prone;
+    public bool attacking;
+    public float attackTimer;
+    public int attackNumber;
 
 	// Use this for initialization
 	void Start () {
         animator = this.GetComponent<Animator>();
+        attackNumber = 0;
     }
 	
 	// Update is called once per frame
@@ -53,22 +60,31 @@ public class PlayerController : MonoBehaviour {
 
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
         SpriteRenderer model = GetComponent<SpriteRenderer>();
-        if (groundCheck.GetComponent<BoxCollider2D>().IsTouchingLayers(whatIsGround))
+        if (groundCheck.GetComponent<BoxCollider2D>().IsTouchingLayers(whatIsGround) && Mathf.Abs(rb.velocity.y) < 0.1f)
         {
             grounded = true;
             doubleJumped = false;
-            animator.SetBool("grounded", true);
+            
             moveSpeed = baseMoveSpeed;
             //rb.velocity = new Vector2(0, 0);
         }
         else
         {
             grounded = false;
-            animator.SetBool("grounded", false);
+            
         }
-        if(Input.GetKey(KeyCode.RightArrow) && Input.GetKey(KeyCode.LeftArrow) || !Input.GetKey(KeyCode.RightArrow) && !Input.GetKey(KeyCode.LeftArrow))
+
+        if (Input.GetKey(KeyCode.D) && !attacking)
+        {
+            attackNumber = (attackNumber)%2  + 1;
+            animator.SetInteger("attacknum", attackNumber);
+            attacking = true;
+        }
+
+        else if(Input.GetKey(KeyCode.RightArrow) && Input.GetKey(KeyCode.LeftArrow) || !Input.GetKey(KeyCode.RightArrow) && !Input.GetKey(KeyCode.LeftArrow))
         {
             moving = false;
+            
             /*if (!grounded)
             {
                 rb.velocity = new Vector2(rb.velocity.x * (1 - (airDamping * Time.deltaTime)), rb.velocity.y);
@@ -161,7 +177,14 @@ public class PlayerController : MonoBehaviour {
         }
         if (Input.GetKey(KeyCode.Space))
         {
-            if(grounded)
+            if(prone)
+            {
+                rb.velocity = new Vector2(rb.velocity.x, .5f);
+                BoxCollider2D collisionBox = GetComponent<BoxCollider2D>();
+                currentIgnoreCollisionTime = 0;
+                collisionBox.isTrigger = true;
+            }
+            else if(grounded)
             {              
                 rb.velocity = new Vector2(rb.velocity.x, jumpStrength);
             }
@@ -171,17 +194,20 @@ public class PlayerController : MonoBehaviour {
         {
             if (!grounded && !doubleJumped)
             {
-                rb.velocity = new Vector2(rb.velocity.x * dJumpBoost, dJumpStrength);
-                /*
-                if (rb.velocity.y < 0)
+                if (Input.GetKey(KeyCode.UpArrow))
                 {
-                    rb.velocity = new Vector2(rb.velocity.x * dJumpBoost, jumpStrength * dJumpModifier);
+                    rb.velocity = new Vector2(rb.velocity.x, dJumpStrength * 1.5f);
+
+                }
+                else if (Mathf.Abs(rb.velocity.x) > 0.5f)
+                {
+                    rb.velocity = new Vector2(rb.velocity.x * dJumpBoost, dJumpStrength);
+                    
                 }
                 else
                 {
-                    rb.velocity = new Vector2(rb.velocity.x * dJumpBoost, rb.velocity.y + dJumpStrength);
+                    rb.velocity = new Vector2(direction * dJumpBoost * 1.5f, dJumpStrength);
                 }
-                */
                 moveSpeed = dJumpMoveSpeed;
                 doubleJumped = true;
             }
@@ -195,6 +221,40 @@ public class PlayerController : MonoBehaviour {
             model.flipX = false;
         }
         animator.SetBool("moving", moving);
+        if (Input.GetKey(KeyCode.DownArrow) && !moving && grounded)
+        {
+            prone = true;
+        }
+        else
+        {
+            prone = false; 
+        }
+        animator.SetBool("prone", prone);
+        BoxCollider2D collisionBox1 = GetComponent<BoxCollider2D>();
+        
 
+        if (collisionBox1.isTrigger)
+        {
+            animator.SetBool("grounded", false);
+            currentIgnoreCollisionTime += Time.deltaTime;
+            if (currentIgnoreCollisionTime > ignoreCollosionTime)
+            {
+                collisionBox1.isTrigger = false;
+            }
+        }
+        else
+        {
+            animator.SetBool("grounded", grounded);
+        }
+        if(attacking)
+        {
+            attackTimer += Time.deltaTime;
+            if(attackTimer > 0.35f)
+            {
+                attacking = false;
+                animator.SetInteger("attacknum", 0);
+                attackTimer = 0;
+            }
+        }
     }
 }
