@@ -29,6 +29,7 @@ public class PlayerController : MonoBehaviour {
     public bool prone;
     public bool attacking;
     public float attackTimer;
+    public float attackFadeTimer;
     public int attackNumber;
 
 	// Use this for initialization
@@ -76,7 +77,7 @@ public class PlayerController : MonoBehaviour {
 
         if (Input.GetKey(KeyCode.D) && !attacking)
         {
-            attackNumber = (attackNumber)%2  + 1;
+            attackNumber = (attackNumber)%3  + 1;
             animator.SetInteger("attacknum", attackNumber);
             attacking = true;
         }
@@ -249,7 +250,7 @@ public class PlayerController : MonoBehaviour {
         if(attacking)
         {
             attackTimer += Time.deltaTime;
-            if(attackTimer > 0.35f)
+            if((attackTimer > 0.35f && attackNumber != 3) || (attackTimer > .5f && attackNumber == 3))
             {
                 attacking = false;
                 animator.SetInteger("attacknum", 0);
